@@ -1,5 +1,5 @@
-// store sur les formulaire
 import { defineStore } from "pinia";
+
 export const useFormStore = defineStore("formStore", {
   state: () => ({
     formFields: [],
@@ -12,25 +12,45 @@ export const useFormStore = defineStore("formStore", {
     formDescription: "",
     preview: false,
     currentForm: null,
-    allData:JSON.parse(localStorage.getItem("allData")) || [],
+    allData: JSON.parse(localStorage.getItem("allData")) || [],
     editForm: false,
     editData: false,
+    socket: null, // Stocker la référence du socket
+    currentEditId: null,
   }),
+
   actions: {
-    addField({ fieldName, fieldType, fieldValue }) {
+    // Injecter la référence du socket lors de l'initialisation du store
+    setSocket(socketInstance) {
+      this.socket = socketInstance;
+    },
+
+    addField({ fieldName, fieldType, fieldValue, fieldplaceholder }) {
       this.formFields.push({
         fieldName,
         fieldType,
         fieldValue,
         fieldplaceholder,
       });
+
+      // Émettre un événement au serveur
+      this.socket?.emit("form-field-added", {
+        fieldName,
+        fieldType,
+        fieldValue,
+      });
     },
+
     addElement({ elementName, elementValue }) {
       this.element = { elementName, elementValue };
       this.data.push(this.element);
+      console.log(this.data);
+      // Émettre un événement au serveur
+      this.socket?.emit("form-element-added", { elementName, elementValue });
     },
+
     createForm() {
-      let forms = JSON.parse(localStorage.getItem("forms")) || [];
+      let forms = [];
       forms.push({
         formName: this.formName,
         formDescription: this.formDescription,
@@ -39,34 +59,62 @@ export const useFormStore = defineStore("formStore", {
       localStorage.setItem("forms", JSON.stringify(forms));
       this.forms = JSON.parse(localStorage.getItem("forms")) || [];
       this.resetForm();
+
+      // Émettre un événement au serveur
+      this.socket?.emit("form-created", { formName: this.formName });
     },
-    editFormFields(element){
-        this.editForm = true;
-        this.currentForm = this.forms.find((form) => form.formName === element.name);
-        this.formName = this.currentForm.formName;
-        this.formDescription = this.currentForm.formDescription;
-        this.formFields = [...this.currentForm.formFields];
-    },
-    updateForm(){
-        this.forms = this.forms.map((form) => {
-            if(form.formName === this.currentForm.formName){
-                form.formName = this.formName;
-                form.formDescription = this.formDescription;
-                form.formFields = [...this.formFields];
-            }
-            return form;
+
+    editFormFields(element) {
+      this.editForm = true;
+      this.currentForm = this.forms[0];
+      console.log("element", element);
+      this.currentEditId = element.id;
+      this.formName = this.currentForm.formName;
+      this.formDescription = this.currentForm.formDescription;
+      this.formFields = [...this.currentForm.formFields];
+      for (const key in element) {
+        this.formFields = this.formFields.map((field) => {
+          if (field.fieldName === key) {
+            field.fieldValue = element[key];
+          }
+          return field;
         });
-        localStorage.setItem("forms", JSON.stringify(this.forms));
-        this.editForm = false;
+      }
+      // Émettre un événement au serveur
+      this.socket?.emit("form-edited", { formName: this.formName });
     },
-    deleteForm(element){
-        this.forms = this.forms.filter((form) => form.formName !== element.name);
-        localStorage.setItem("forms", JSON.stringify(this.forms));
-        //remove all data related to the form
-        this.allData = this.allData.filter((data) => data.formName !== element.name);
-        localStorage.setItem("allData", JSON.stringify(this.allData));
-        this.resetForm();
+
+    updateForm() {
+      this.forms = this.forms.map((form) => {
+        if (form.formName === this.currentForm.formName) {
+          form.formName = this.formName;
+          form.formDescription = this.formDescription;
+          form.formFields = [...this.formFields];
+        }
+        return form;
+      });
+      localStorage.setItem("forms", JSON.stringify(this.forms));
+      this.editForm = false;
+
+      // Émettre un événement au serveur
+      this.socket?.emit("client-message", { formName: this.formName });
     },
+
+    deleteForm(element) {
+      this.forms = this.forms.filter((form) => form.formName !== element.name);
+      localStorage.setItem("forms", JSON.stringify(this.forms));
+
+      // Remove all data related to the form
+      this.allData = this.allData.filter(
+        (data) => data.formName !== element.name
+      );
+      localStorage.setItem("allData", JSON.stringify(this.allData));
+      this.resetForm();
+
+      // Émettre un événement au serveur
+      this.socket?.emit("client-message", { formName: element.name });
+    },
+
     resetForm() {
       this.formFields = [];
       this.field = {};
@@ -76,32 +124,68 @@ export const useFormStore = defineStore("formStore", {
       this.formDescription = "";
       this.preview = false;
     },
+    resetAllFieldsValueInformFields() {
+      this.formFields = this.formFields.map((field) => {
+        field.fieldValue = "";
+        return field;
+      });
+    },
+
     getFieldsInfo(fields) {
       return fields.map(({ formName, formDescription }) => ({
         name: formName,
         description: formDescription,
       }));
     },
-    
-    useForm(selectedForm) {
-        // get form in form table based on name
-     selectedForm = this.forms.find((form) => form.formName === selectedForm.name);
+
+    useForm() {
+      let selectedForm = this.forms[0];
       this.currentForm = selectedForm;
-      this.formName = selectedForm.formName;
-      this.formDescription = selectedForm.formDescription;
-      this.formFields = selectedForm.formFields;
+      this.formName = selectedForm?.formName;
+      this.formDescription = selectedForm?.formDescription;
+      this.formFields = selectedForm?.formFields;
+
+      // Émettre un événement au serveur
+      this.socket?.emit("client-message", { formName: this.formName });
     },
+
     saveData({ formName = null, data = {} }) {
-        if (!formName) {
-            formName = this.formName;
-        }
-      const formData = { formName, data };
-      this.allData.push(formData);
+      // if (!formName) {
+      //   formName = this.formName;
+      // }
+      // const formData = { formName, data };
+      this.allData.push(data);
       localStorage.setItem("allData", JSON.stringify(this.allData));
-      
+
+      // Émettre un événement au serveur
+      this.socket?.emit("client-message", { formName, data });
     },
-    returnCurrentFormData(){
-        return this.allData.find((data) => data.formName === this.formName)?.data || [];
-    }
+
+    updateFieldValue() {
+      //CHANGE FIELD IN ALLdATA WHERE ID IS currentEditId
+      this.allData = this.allData.map((data) => {
+        if (data.id === this.currentEditId) {
+            this.formFields.forEach((field) => {
+          if (data[field.fieldName] !== undefined) {
+              data[field.fieldName] = field.fieldValue;
+          }
+            });
+        }
+        return data;
+      });
+      localStorage.setItem("allData", JSON.stringify(this.allData));
+      this.editForm = false;
+      // vider la valuer de tout les formFields
+      this.resetAllFieldsValueInformFields();
+    },
+    deleteElement(element) {
+      this.allData = this.allData.filter((data) => data.id !== element.id);
+      localStorage.setItem("allData", JSON.stringify(this.allData));
+    },
+    returnCurrentFormData() {
+      return (
+        this.allData.find((data) => data.formName === this.formName)?.data || []
+      );
+    },
   },
 });

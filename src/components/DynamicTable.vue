@@ -6,9 +6,9 @@ const props = defineProps({
   actions: { type: Array, default: () => [] }, // Liste des actions (ex: Edit, Delete)
 });
 
-// Générer dynamiquement les colonnes sauf les actions
+// Générer dynamiquement les colonnes sauf les actions et l'id
 const columns = computed(() =>
-  props.data.length > 0 ? Object.keys(props.data[0]) : []
+  props.data.length > 0 ? Object.keys(props.data[0]).filter(column => column !== 'id') : []
 );
 
 // Gestion du tri
@@ -36,48 +36,64 @@ const sortedData = computed(() => {
 </script>
 
 <template>
-  <div class="overflow-x-auto shadow-lg rounded-lg mt-6 bg-white p-4">
-    <table class="min-w-full border border-gray-200 rounded-lg">
-      <thead class="bg-gray-200 text-gray-700">
+  <div class="overflow-x-auto shadow-xl rounded-2xl mt-6 bg-white p-6">
+    <table class="min-w-full table-auto border-separate border-spacing-0 rounded-lg">
+      <!-- HEADER -->
+      <thead class="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 text-sm uppercase">
         <tr>
           <th
             v-for="column in columns"
             :key="column"
             @click="sortBy(column)"
-            class="py-3 px-4 text-left cursor-pointer hover:bg-gray-300 transition"
+            class="py-3 px-5 text-left cursor-pointer hover:bg-gray-300 transition rounded-tl-lg"
           >
-            {{ column.toUpperCase() }}
-            <span v-if="sortKey === column">
-              {{ sortOrder === 1 ? "▲" : "▼" }}
-            </span>
+            <div class="flex items-center space-x-1">
+              <span>{{ column.toUpperCase() }}</span>
+              <span v-if="sortKey === column">
+                {{ sortOrder === 1 ? "▲" : "▼" }}
+              </span>
+            </div>
           </th>
-          <th class="py-3 px-4 text-left">Actions</th>
+          <th class="py-3 px-5 text-left rounded-tr-lg">Actions</th>
         </tr>
       </thead>
+
+      <!-- BODY -->
       <tbody>
+        <!-- Cas où il n'y a pas de données -->
         <tr v-if="sortedData.length === 0">
-          <td :colspan="columns.length + 1" class="text-center py-4 text-gray-500">
+          <td :colspan="columns.length + 1" class="text-center py-6 text-gray-500">
             Aucune donnée disponible
           </td>
         </tr>
+        
+        <!-- Lignes de données -->
         <tr
           v-for="(item, index) in sortedData"
           :key="index"
-          class="hover:bg-gray-100 transition"
+          class="odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition"
         >
-          <td v-for="column in columns" :key="column" class="py-3 px-4 border-b">
+          <td
+            v-for="column in columns"
+            :key="column"
+            class="py-4 px-5 border-b text-gray-700"
+          >
             {{ item[column] }}
           </td>
-          <td class="py-3 px-4 border-b flex space-x-2">
-            <button
-              v-for="action in actions"
-              :key="action.label"
-              @click="action.method(item)"
-              class="px-3 py-1 rounded text-white text-sm transition"
-              :class="action.color"
-            >
-              {{ action.label }}
-            </button>
+
+          <!-- Actions -->
+          <td class="py-4 px-5 border-b text-gray-700">
+            <div class="flex justify-start space-x-3">
+              <button
+                v-for="action in actions"
+                :key="action.label"
+                @click="action.method(item)"
+                class="px-4 py-2 rounded-lg text-white text-sm font-medium shadow-md transition"
+                :class="action.color"
+              >
+                {{ action.label }}
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>

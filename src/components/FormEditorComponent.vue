@@ -1,55 +1,92 @@
 <script setup>
 import { useFormStore } from "@/stores/formStore";
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
+import { io } from "socket.io-client";
 import FormPrevsualizer from "./FormPrevsualizer.vue";
 import DynamicTable from "./DynamicTable.vue";
 
 const formStore = useFormStore();
 const isModalOpen = ref(false);
+const socket = io("http://localhost:5000"); // Assurez-vous que c'est la bonne URL
+
+// Actions disponibles
 const actions = [
   {
     label: "Modifier",
-    method: (item) => formStore.editFormFields(item),
+    method: (item) => {
+      formStore.editFormFields(item);
+      socket.emit("form-action", { action: "edit", item });
+    },
     color: "bg-blue-500 hover:bg-blue-600",
   },
   {
     label: "Supprimer",
-    method: (item) => formStore.deleteForm(item),
+    method: (item) => {
+      formStore.deleteForm(item);
+      socket.emit("form-action", { action: "delete", item });
+    },
     color: "bg-red-500 hover:bg-red-600",
   },
 ];
+
+// Écoute des réponses du serveur
+onMounted(() => {
+  socket.on("server-response", (data) => {
+    console.log("Réponse du serveur :", data);
+    // Tu peux mettre à jour ton store ici si nécessaire
+  });
+});
+
+onUnmounted(() => {
+  socket.off("server-response"); // Nettoyage de l'écouteur
+});
+
+// Ajouter une nouvelle ligne
 function addNewLine() {
-  formStore.formFields.push({
+  const newField = {
     fieldName: "",
     fieldType: "text",
-    fieldplaceholder: "un placeholder(optional)",
+    fieldplaceholder: "un placeholder (optional)",
     fieldValue: "",
-  });
+  };
+  
+  formStore.formFields.push(newField);
+  socket.emit("form-action", { action: "add", field: newField });
 }
 
+// Supprimer un champ
 function removeField(index) {
+  const removedField = formStore.formFields[index];
   formStore.formFields.splice(index, 1);
+  socket.emit("form-action", { action: "remove", field: removedField });
 }
 
+// Générer un aperçu
 function generatePreview() {
   formStore.preview = true;
+  socket.emit("form-action", { action: "preview", formName: formStore.formName });
 }
 
+// Sauvegarder le formulaire
 function saveForm() {
   console.log("Formulaire sauvegardé :", formStore);
   isModalOpen.value = false;
+  socket.emit("form-action", { action: "save", formName: formStore.formName, fields: formStore.formFields });
 }
-// Fonction pour parcourir un tableau d'objets et recuperer uniquement le nom et la description
-    function getFieldsInfo(fields) {
-      console.log(fields);
-      return fields.map(({ formName, formDescription }) => ({
-        name: formName,
-        description: formDescription,
-      }));
-    }
+
+// Fonction pour récupérer nom + description des champs
+function getFieldsInfo(fields) {
+  console.log(fields);
+  return fields.map(({ formName, formDescription }) => ({
+    name: formName,
+    description: formDescription,
+  }));
+}
 </script>
 
+
 <template>
+  {{ formStore.socket,"fffffffffffffffffffffffffff" }}
   <div class="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg">
     <h1 class="text-2xl font-bold text-gray-800 mb-4">FormMaker</h1>
 
