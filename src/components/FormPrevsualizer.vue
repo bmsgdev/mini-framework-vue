@@ -2,16 +2,20 @@
 import { useFormStore } from "@/stores/formStore";
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
-
+import { useToast } from "vue-toastification"; 
+const toast = useToast(); 
 const formStore = useFormStore();
 const socket = io("http://localhost:5000");
 
 // Écoute des réponses du serveur en temps réel
 onMounted(() => {
-  socket.on("server-response", (data) => {
-    console.log("Réponse du serveur :", data);
-    // Ici, tu peux mettre à jour ton store si besoin
-  });
+  // socket.on("server-response", (data) => {
+  //   if (data.action === "saveForm") {
+  //     toast.success("Formulaire sauvegardé avec succès!");
+  //   } else if (data.action === "saveData") {
+  //     toast.success("Données enregistrées avec succès!");
+  //   }
+  // });
 });
 
 onUnmounted(() => {

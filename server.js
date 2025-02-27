@@ -21,16 +21,15 @@ io.on("connection", (socket) => {
 
   // Écoute des actions du formulaire
   socket.on("form-action", (data) => {
-    console.log(`📩 Action reçue : ${data.action}`, data);
-
     // Diffuser à tous les clients sauf l'émetteur
-    socket.broadcast.emit("server-update", {
+    socket.broadcast.emit("server-response", {
       message: `Mise à jour : ${data.action}`,
       data,
     });
 
-    // Répondre uniquement à l'émetteur
-    socket.emit("server-response", { message: `Action ${data.action} bien reçue` });
+    const firstKey = Object.keys(data)[0]; // Récupère la première clé
+    socket.emit("server-response", { [firstKey]: data[firstKey] });
+    
   });
 
   socket.on("disconnect", () => {

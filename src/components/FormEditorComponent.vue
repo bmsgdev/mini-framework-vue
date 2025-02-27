@@ -4,12 +4,13 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
 import FormPrevsualizer from "./FormPrevsualizer.vue";
 import DynamicTable from "./DynamicTable.vue";
+import { useToast } from "vue-toastification"; 
+const toast = useToast(); 
 
 const formStore = useFormStore();
 const isModalOpen = ref(false);
-const socket = io("http://localhost:5000"); // Assurez-vous que c'est la bonne URL
+const socket = io("http://localhost:5000"); 
 
-// Actions disponibles
 const actions = [
   {
     label: "Modifier",
@@ -31,10 +32,9 @@ const actions = [
 
 // Écoute des réponses du serveur
 onMounted(() => {
-  socket.on("server-response", (data) => {
-    console.log("Réponse du serveur :", data);
-    // Tu peux mettre à jour ton store ici si nécessaire
-  });
+  // socket.on("server-response", (data) => {
+  //   toast.info(`Réponse du serveur : ${data || "Aucune donnée"}`);
+  // });
 });
 
 onUnmounted(() => {
@@ -86,7 +86,6 @@ function getFieldsInfo(fields) {
 
 
 <template>
-  {{ formStore.socket,"fffffffffffffffffffffffffff" }}
   <div class="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg">
     <h1 class="text-2xl font-bold text-gray-800 mb-4">FormMaker</h1>
 

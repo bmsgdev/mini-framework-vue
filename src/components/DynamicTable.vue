@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 
 const props = defineProps({
   data: { type: Array, required: true }, // Données du tableau
-  actions: { type: Array, default: () => [] }, // Liste des actions (ex: Edit, Delete)
+  actions: { type: Array, default: () => [] }, // Liste des actions
 });
 
 // Générer dynamiquement les colonnes sauf les actions et l'id
@@ -58,16 +58,13 @@ const sortedData = computed(() => {
         </tr>
       </thead>
 
-      <!-- BODY -->
       <tbody>
-        <!-- Cas où il n'y a pas de données -->
         <tr v-if="sortedData.length === 0">
           <td :colspan="columns.length + 1" class="text-center py-6 text-gray-500">
             Aucune donnée disponible
           </td>
         </tr>
         
-        <!-- Lignes de données -->
         <tr
           v-for="(item, index) in sortedData"
           :key="index"

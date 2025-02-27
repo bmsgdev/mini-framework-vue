@@ -44,7 +44,6 @@ export const useFormStore = defineStore("formStore", {
     addElement({ elementName, elementValue }) {
       this.element = { elementName, elementValue };
       this.data.push(this.element);
-      console.log(this.data);
       // Émettre un événement au serveur
       this.socket?.emit("form-element-added", { elementName, elementValue });
     },
@@ -67,7 +66,6 @@ export const useFormStore = defineStore("formStore", {
     editFormFields(element) {
       this.editForm = true;
       this.currentForm = this.forms[0];
-      console.log("element", element);
       this.currentEditId = element.id;
       this.formName = this.currentForm.formName;
       this.formDescription = this.currentForm.formDescription;
@@ -162,7 +160,6 @@ export const useFormStore = defineStore("formStore", {
     },
 
     updateFieldValue() {
-      //CHANGE FIELD IN ALLdATA WHERE ID IS currentEditId
       this.allData = this.allData.map((data) => {
         if (data.id === this.currentEditId) {
             this.formFields.forEach((field) => {
